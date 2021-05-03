@@ -1,4 +1,4 @@
-/*
+ /*
  * Copyright 2018, The Android Open Source Project
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -20,11 +20,13 @@ import android.os.Bundle
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
+import android.widget.Toast
 import androidx.databinding.DataBindingUtil
 import androidx.fragment.app.Fragment
 import androidx.lifecycle.Observer
 import androidx.lifecycle.ViewModelProvider
 import androidx.navigation.fragment.findNavController
+import androidx.recyclerview.widget.GridLayoutManager
 import com.example.android.trackmysleepquality.R
 import com.example.android.trackmysleepquality.database.SleepDatabase
 import com.example.android.trackmysleepquality.databinding.FragmentSleepTrackerBinding
@@ -37,11 +39,6 @@ import com.google.android.material.snackbar.Snackbar
  */
 class SleepTrackerFragment : Fragment() {
 
-    /**
-     * Called when the Fragment is ready to display content to the screen.
-     *
-     * This function uses DataBindingUtil to inflate R.layout.fragment_sleep_quality.
-     */
     override fun onCreateView(inflater: LayoutInflater, container: ViewGroup?,
                               savedInstanceState: Bundle?): View? {
 
@@ -54,10 +51,37 @@ class SleepTrackerFragment : Fragment() {
         val sleepTrackerViewModel=ViewModelProvider(this,viewModelFactory).get(SleepTrackerViewModel::class.java)
         binding.lifecycleOwner=this
         binding.sleepTrackerViewModel=sleepTrackerViewModel
-        sleepTrackerViewModel.navigateToSleepQuality.observe(viewLifecycleOwner, Observer {night->
+        val manager=GridLayoutManager(activity,3)
+        manager.spanSizeLookup=object :GridLayoutManager.SpanSizeLookup(){
+            override fun getSpanSize(position: Int): Int =when(position){
+                0->3
+                else ->1
+            }
+
+        }
+        binding.sleepList.layoutManager=manager
+        val adapter=SleepNightAdapter(SleepNightListener { nightId->
+            sleepTrackerViewModel.onSleepNightClicked(nightId)
+        })
+        binding.sleepList.adapter=adapter
+        sleepTrackerViewModel.nights.observe(viewLifecycleOwner, Observer {
+            it?.let {
+                adapter.addHeaderAndSubmitList(it)
+            }
+        })
+        sleepTrackerViewModel.navigateToSleepQuality.observe(viewLifecycleOwner, Observer { night ->
             night?.let {
-                this.findNavController().navigate(SleepTrackerFragmentDirections.actionSleepTrackerFragmentToSleepQualityFragment(night.nightId))
-                sleepTrackerViewModel.doneNavigate()
+                this.findNavController().navigate(
+                        SleepTrackerFragmentDirections
+                                .actionSleepTrackerFragmentToSleepQualityFragment(night.nightId))
+                sleepTrackerViewModel.doneNavigating()
+            }
+        })
+
+        sleepTrackerViewModel.navigateToSleepDataQuality.observe(viewLifecycleOwner, Observer {night->
+            night?.let {
+                this.findNavController().navigate(SleepTrackerFragmentDirections.actionSleepTrackerFragmentToSleepDetailFragment(night))
+                sleepTrackerViewModel.onSleepDataQualityNavigated()
             }
         })
         sleepTrackerViewModel.showSnackbarEvent.observe(viewLifecycleOwner, Observer {

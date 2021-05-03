@@ -26,9 +26,7 @@ import com.example.android.trackmysleepquality.formatNights
 import com.google.android.material.snackbar.Snackbar
 import kotlinx.coroutines.*
 
-/**
- * ViewModel for SleepTrackerFragment.
- */
+
 class SleepTrackerViewModel(
         val database: SleepDatabaseDao,
         application: Application) : AndroidViewModel(application) {
@@ -38,21 +36,30 @@ class SleepTrackerViewModel(
         viewModelJob.cancel()
         super.onCleared()
     }
-    private val _navigateToSleepQuality=MutableLiveData<SleepNight>()
-    val navigateToSleepQuality:LiveData<SleepNight>
+    private val _navigateToSleepQuality=MutableLiveData<SleepNight?>()
+    val navigateToSleepQuality: MutableLiveData<SleepNight?>
         get() = _navigateToSleepQuality
     private var _showSnackbarEvent=MutableLiveData<Boolean>()
     val showSnackbarEvent:LiveData<Boolean>
         get() = _showSnackbarEvent
-    fun doneNavigate(){
-        _navigateToSleepQuality.value=null
+    private val _navigateToSleepDataQuality=MutableLiveData<Long?>()
+    val navigateToSleepDataQuality
+        get() = _navigateToSleepDataQuality
+    fun onSleepNightClicked(id:Long){
+        _navigateToSleepDataQuality.value=id
+    }
+    fun doneNavigating() {
+        _navigateToSleepQuality.value = null
+    }
+    fun onSleepDataQualityNavigated() {
+        _navigateToSleepDataQuality.value = null
     }
     fun doneShowingSnackbar(){
         _showSnackbarEvent.value=false
     }
     private val uiScope = CoroutineScope(Dispatchers.Main + viewModelJob)
     private var tonight = MutableLiveData<SleepNight?>()
-    private val nights=database.getAllNights()
+    val nights=database.getAllNights()
     val nightsString=Transformations.map(nights){nights->
         formatNights(nights,application.resources)
     }
